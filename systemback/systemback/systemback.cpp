@@ -2575,6 +2575,7 @@ void systemback::systemcopy()
 
 void systemback::livewrite()
 {
+    printf("start..............................................>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
     statustart(), pset(10);
     QStr ldev(ui->livedevices->item(ui->livedevices->currentRow(), 0)->text());
     bool ismmc(ldev.contains("mmc"));
@@ -2602,7 +2603,9 @@ void systemback::livewrite()
         });
 
     if(! sb::exist(ldev))
+    {
         return err(338);
+    }   
     else if(sb::mcheck(ldev))
     {
         for(cQStr &sitem : QDir("/dev").entryList(QDir::System))
@@ -2619,14 +2622,14 @@ void systemback::livewrite()
         sb::fssync();
         if(intrrpt) return err();
     }
-
+    printf("11111111111111111111===%s\n", ldev.toStdString().data());
     if(! sb::mkptable(ldev) || intrrpt) return err(338);
     sb::delay(200);
     QStr lrdir;
 
     {
         ullong isize(sb::fsize(sb::sdir[2] % '/' % sb::left(ui->livelist->currentItem()->text(), sb::instr(ui->livelist->currentItem()->text(), " ") - 1) % ".sblive"));
-
+        printf("222222222222222222222222222===%ld\n", isize);
         if(isize < 4294967295)
         {
             if(! sb::mkpart(ldev) || intrrpt) return err(338);
@@ -2635,19 +2638,21 @@ void systemback::livewrite()
         }
         else
         {
-            if(! (sb::mkpart(ldev, 1048576, 104857600) && sb::mkpart(ldev)) || intrrpt) return err(338);
+            printf("333333333333333333===,ldev=%s, %ld\n", ldev.toStdString().data(), isize);
+            if(! (sb::mkpart(ldev, 1048576, 1048576000) && sb::mkpart(ldev)) || intrrpt) return err(338);
+            printf("444444444444444444444444444===\n");
             sb::delay(200);
             if(sb::exec("mkfs.ext2 -FL SBROOT " % ldev % ((ismmc || isnvme)? "p" : nullptr) % '2') || intrrpt) return err(338);
             lrdir = "sbroot";
         }
-
+        
         if(sb::exec("mkfs.vfat -F 32 -n SBLIVE " % ldev % ((ismmc || isnvme) ? "p" : nullptr) % '1') || intrrpt) return err(338);
 
         if(sb::exec("dd if=/usr/lib/syslinux/" % QStr(sb::isfile("/usr/lib/syslinux/mbr.bin") ? nullptr : "mbr/") % "mbr.bin of=" % ldev % " conv=notrunc bs=440 count=1") || ! sb::setpflag(ldev % ((ismmc || isnvme) ? "p" : nullptr) % '1', "boot lba")
             || intrrpt || (sb::exist("/.sblivesystemwrite") && (((sb::mcheck("/.sblivesystemwrite/sblive") && ! sb::umount("/.sblivesystemwrite/sblive")) || (sb::mcheck("/.sblivesystemwrite/sbroot") && ! sb::umount("/.sblivesystemwrite/sbroot"))) || ! sb::remove("/.sblivesystemwrite")))
             || intrrpt || ! (sb::crtdir("/.sblivesystemwrite") && sb::crtdir("/.sblivesystemwrite/sblive"))
             || intrrpt) return err();
-
+printf("555555555555===\n");
         sb::delay(200);
         if(! sb::mount(ldev % ((ismmc || isnvme) ? "p" : nullptr) % '1', "/.sblivesystemwrite/sblive") || intrrpt) return err(337);
 
@@ -2660,7 +2665,7 @@ void systemback::livewrite()
         if(sb::dfree("/.sblivesystemwrite/" % lrdir) < isize + 52428800) return err(322);
         sb::ThrdStr[0] = "/.sblivesystemwrite", sb::ThrdLng[0] = isize;
     }
-
+printf("666666666666===\n");
     if(lrdir == "sblive")
     {
         if(sb::exec("tar -xf \"" % sb::sdir[2] % "\"/" % sb::left(ui->livelist->currentItem()->text(), sb::instr(ui->livelist->currentItem()->text(), " ") - 1) % ".sblive -C /.sblivesystemwrite/sblive --no-same-owner --no-same-permissions", sb::Prgrss)) return err(323);
@@ -2674,7 +2679,7 @@ void systemback::livewrite()
     if(sb::ecache) sb::crtfile("/proc/sys/vm/drop_caches", "3");
     sb::umount("/.sblivesystemwrite/sblive"),
     rmdir("/.sblivesystemwrite/sblive");
-
+printf("777777777777777===\n");
     if(lrdir == "sbroot")
     {
         sb::umount("/.sblivesystemwrite/sbroot");

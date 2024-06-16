@@ -1153,6 +1153,7 @@ bool sb::srestore(uchar mthd, cQStr &usr, cQStr &srcdir, cQStr &trgt, bool sfsta
 
 bool sb::mkpart(cQStr &dev, ullong start, ullong len, uchar type)
 {
+    printf("mkpart\n");
     auto err([&dev] { return error("\n " % tr("An error occurred while creating a new partition on the following device:") % "\n\n  " % dev % fdbg(dev), true); });
     if(dev.length() > ((dev.contains("mmc") || dev.contains("nvme")) ? 12 : 8) || stype(dev) != Isblock) return err();
     ThrdType = Mkpart,
@@ -2030,8 +2031,19 @@ void sb::run()
         while(! ThrdKill && (prt = ped_disk_next_partition(dsk, prt)))
             if(QStr(ped_partition_get_path(prt)) == ThrdStr[0])
             {
+                // PED_PARTITION_LBA;
                 for(cQStr &flag : ThrdStr[1].split(' '))
+                {
+                    if (flag == "lba")
+                    {
+                        printf("lba................\n");
+                        // if(! ped_partition_set_flag(prt, PED_PARTITION_LBA, 1)) goto err;
+                        continue;
+                    }
+                    printf("lba2................\n");
                     if(! ped_partition_set_flag(prt, ped_partition_flag_get_by_name(bstr(flag)), 1)) goto err;
+                }
+                    
 
                 if(ped_disk_commit_to_dev(dsk)) ThrdRslt = true;
             err:
@@ -2050,6 +2062,7 @@ void sb::run()
     }
     case Mkpart:
     {
+        printf("Mkpart..............\n");
         PedDevice *dev(ped_device_get(bstr(ThrdStr[0])));
         PedDisk *dsk(ped_disk_new(dev));
         PedPartition *prt(nullptr);
@@ -2058,15 +2071,19 @@ void sb::run()
         if(ThrdLng[0] && ThrdLng[1])
         {
             PedPartition *crtprt(ped_partition_new(dsk, ThrdChr == Primary ? PED_PARTITION_NORMAL : ThrdChr == Extended ? PED_PARTITION_EXTENDED : PED_PARTITION_LOGICAL, ped_file_system_type_get("ext2"), psalign(ThrdLng[0] / dev->sector_size, dev->sector_size), ullong(dev->length - 1048576 / dev->sector_size) >= (ThrdLng[0] + ThrdLng[1]) / dev->sector_size - 1 ? pealign((ThrdLng[0] + ThrdLng[1]) / dev->sector_size - 1, dev->sector_size) : (ThrdLng[0] + ThrdLng[1]) / dev->sector_size - 1));
-            if(ped_disk_add_partition(dsk, crtprt, ped_constraint_exact(&crtprt->geom)) && ped_disk_commit_to_dev(dsk)) ThrdRslt = true;
+            // if(ped_disk_add_partition(dsk, crtprt, ped_constraint_exact(&crtprt->geom)) && ped_disk_commit_to_dev(dsk)) ThrdRslt = true;
+            if(ped_disk_add_partition(dsk, crtprt, ped_constraint_any(dev)) && ped_disk_commit_to_dev(dsk)) ThrdRslt = true;
+            
             ped_disk_commit_to_os(dsk);
         }
         else
             while(! ThrdKill && (prt = ped_disk_next_partition(dsk, prt)))
                 if(prt->type == PED_PARTITION_FREESPACE && prt->geom.length >= 1048576 / dev->sector_size)
                 {
+                    // PedDevice *dev = ped_device_get(path);
+                    // PedConstraint *constraint_any = ped_constraint_any (dev);
                     PedPartition *crtprt(ped_partition_new(dsk, PED_PARTITION_NORMAL, ped_file_system_type_get("ext2"), ThrdLng[0] ? psalign(ThrdLng[0] / dev->sector_size, dev->sector_size) : psalign(prt->geom.start, dev->sector_size), ThrdLng[1] ? pealign((ThrdLng[0] + ThrdLng[1]) / dev->sector_size - 1, dev->sector_size) : prt->next && prt->next->type == PED_PARTITION_METADATA ? prt->next->geom.end : pealign(prt->geom.end, dev->sector_size)));
-                    if(ped_disk_add_partition(dsk, crtprt, ped_constraint_exact(&crtprt->geom)) && ped_disk_commit_to_dev(dsk)) ThrdRslt = true;
+                    if(ped_disk_add_partition(dsk, crtprt, ped_constraint_any(dev)) && ped_disk_commit_to_dev(dsk)) ThrdRslt = true;
                     ped_disk_commit_to_os(dsk);
                     break;
                 }
