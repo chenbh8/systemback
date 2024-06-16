@@ -1,8 +1,7 @@
 
 在原有：https://github.com/MaranBr/Systemback到基础上修改了第一分区太小等的bug
 
-systemback下载地址：https://github.com/MaranBr/Systemback.git
-systemback编译地址：https://github.com/MaranBr/Systemback/wiki/Building
+
 systemback编译方法：$ 
 sudo apt-get install build-essential debhelper devscripts libblkid-dev libmount-dev libncursesw5-dev libparted-dev qtbase5-dev qttools5-dev-tools git-all gnupg
 cd Systemback/systemback
