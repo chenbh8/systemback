@@ -11,3 +11,9 @@ debuild -us -uc
 systemback扩大内存方法：sb::mkpart分区加个0：sb::mkpart(ldev, 1048576, 1048576000) 
 ped_constraint_exact(&crtprt->geom)改成ped_disk_commit_to_dev(dsk)
 Setpflag去掉lba标志。
+运行方法：
+
+sudo su
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/chen/systemback/systemback/libsystemback
+cd Systemback/systemback/systemback
+./systemback
